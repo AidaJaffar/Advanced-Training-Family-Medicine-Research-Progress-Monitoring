@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Training Family Medicine Research Progress Monitoring</title>
+    <!-- Firebase Compat Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --secondary: #0f766e;
+            --bg-dark: #0f172a;
+            --bg-card: #ffffff;
+            --bg-app: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --status-not-started: #cbd5e1;
+            --status-in-progress: #f59e0b;
+            --status-completed: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-app); color: var(--text-main); padding-bottom: 50px; }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, #0f2744 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-title h1 { font-size: 1.4rem; font-weight: 700; }
+        .header-title p { color: #93c5fd; font-size: 0.85rem; margin-top: 0.25rem; }
+
+        .cloud-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .dot-online { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
+        .dot-offline { background-color: #ef4444; }
+
+        .action-buttons { display: flex; gap: 0.5rem; }
+        .btn {
+            background: white;
+            color: var(--primary);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary { background: var(--primary-light); color: white; }
+        .btn-outline { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.3); }
+
+        main { max-width: 1400px; margin: 1.5rem auto; padding: 0 1.5rem; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .stat-card .label { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-card .value { font-size: 1.75rem; font-weight: 800; color: var(--primary); }
+        .stat-card .sub-text { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+        .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; gap: 1rem; }
+        .tab-btn {
+            background: none; border: none; padding: 0.75rem 0.5rem;
+            font-size: 0.95rem; font-weight: 600; color: var(--text-muted); cursor: pointer; position: relative;
+        }
+        .tab-btn.active { color: var(--primary); }
+        .tab-btn.active::after {
+            content: ''; position: absolute; bottom: -2px; left: 0; right: 0;
+            height: 3px; background: var(--primary); border-radius: 3px 3px 0 0;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .filter-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap; }
+        .search-box { padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; width: 280px; font-size: 0.875rem; }
+
+        .table-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+        th { background: #f1f5f9; color: var(--text-main); padding: 0.75rem 0.5rem; font-weight: 700; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        td { padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tr:hover { background-color: #f8fafc; }
+
+        .task-col { text-align: center; width: 38px; }
+        .status-dot { width: 18px; height: 18px; border-radius: 50%; display: inline-block; cursor: pointer; }
+        .status-0 { background-color: var(--status-not-started); }
+        .status-1 { background-color: var(--status-in-progress); }
+        .status-2 { background-color: var(--status-completed); }
+
+        .progress-bar-bg { background: #e2e8f0; height: 8px; border-radius: 4px; width: 80px; overflow: hidden; display: inline-block; vertical-align: middle; }
+        .progress-bar-fill { background: var(--status-completed); height: 100%; transition: width 0.3s; }
+
+        .editor-card { background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border); padding: 1.5rem; max-width: 800px; margin: 0 auto; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.4rem; }
+        .form-control { width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; }
+
+        .task-editor-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
+        .task-editor-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid var(--border); }
+        .status-select { padding: 0.3rem 0.5rem; border-radius: 4px; border: 1px solid var(--border); font-size: 0.85rem; }
+
+        .legend { display: flex; gap: 1.5rem; font-size: 0.8rem; color: var(--text-muted); align-items: center; }
+        .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-container">
+            <div class="header-title">
+                <h1>Advanced Training Family Medicine Research Progress Monitoring</h1>
+                <p>Cycle: Sept 2026 – Aug 2028 (34 Cohort Groups)</p>
+            </div>
+            <div class="cloud-badge" id="cloudBadge">
+                <span class="dot dot-offline" id="statusDot"></span>
+                <span id="statusText">Checking Cloud Sync...</span>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-outline" onclick="openConfigModal()">Cloud Sync Setup</button>
+                <button class="btn btn-primary" onclick="switchTab('editor')">Update Group Progress</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Total Cohort Groups</div>
+                <div class="value">34</div>
+                <div class="sub-text">Active Research Teams</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Average Progress</div>
+                <div class="value" id="stat-avg-progress">0%</div>
+                <div class="sub-text">Across All Milestones</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Ethics Approved</div>
+                <div class="value" id="stat-ethics-approved">0 / 34</div>
+                <div class="sub-text">Task 3 Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Manuscripts Submitted</div>
+                <div class="value" id="stat-manuscripts-submitted">0 / 34</div>
+                <div class="sub-text">Task 9 Completed</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('matrix')">Overall Matrix View</button>
+            <button class="tab-btn" onclick="switchTab('editor')">Update Group Details</button>
+        </div>
+
+        <!-- TAB 1: OVERALL MATRIX VIEW -->
+        <div id="tab-matrix" class="tab-content active">
+            <div class="filter-bar">
+                <input type="text" id="searchGroup" class="search-box" placeholder="Search Group or Project Title..." oninput="renderMatrix()">
+                <div class="legend">
+                    <div class="legend-item"><span class="status-dot status-0"></span> Not Started</div>
+                    <div class="legend-item"><span class="status-dot status-1"></span> In Progress</div>
+                    <div class="legend-item"><span class="status-dot status-2"></span> Completed</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Group</th>
+                            <th>Project Title</th>
+                            <th class="task-col" title="1. Literature review and Methodology">T1</th>
+                            <th class="task-col" title="2. Preparation of Proposal and presentation">T2</th>
+                            <th class="task-col" title="3. Ethics approval">T3</th>
+                            <th class="task-col" title="4. Permission from authority">T4</th>
+                            <th class="task-col" title="5. Data collection">T5</th>
+                            <th class="task-col" title="6. Data cleaning, entry and analysis">T6</th>
+                            <th class="task-col" title="7. Submission and presentation of the final result">T7</th>
+                            <th class="task-col" title="8. Manuscript writing">T8</th>
+                            <th class="task-col" title="9. Submission final manuscript">T9</th>
+                            <th style="width: 110px; text-align: center;">Overall %</th>
+                            <th style="width: 80px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrixTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 2: UPDATE GROUP DETAILS -->
+        <div id="tab-editor" class="tab-content">
+            <div class="editor-card">
+                <h2 style="font-size: 1.2rem; margin-bottom: 1rem;">Update Group Progress</h2>
+                
+                <div class="form-group">
+                    <label for="selectGroup">Select Your Group</label>
+                    <select id="selectGroup" class="form-control" onchange="loadGroupEditorData()">
+                        <!-- Generated by JS -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="projectTitle">Project Title</label>
+                    <input type="text" id="projectTitle" class="form-control" placeholder="Enter research project title...">
+                </div>
+
+                <div class="form-group">
+                    <label for="leadResearcher">Group Leader / Team Members</label>
+                    <input type="text" id="leadResearcher" class="form-control" placeholder="Enter group members' names...">
+                </div>
+
+                <h3 style="font-size: 1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Milestone Task Status</h3>
+                
+                <div class="task-editor-list" id="taskEditorList"></div>
+
+                <div style="margin-top: 1.5rem; text-align: right;">
+                    <button class="btn btn-primary" style="padding: 0.75rem 1.5rem;" onclick="saveGroupData()">Publish Updates Live</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- CONFIG MODAL -->
+    <div class="modal-overlay" id="configModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 0.5rem;">Firebase Cloud Sync Setup</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Paste your Firebase Database URL below to sync live updates across all 34 groups in real time.</p>
+            <div class="form-group">
+                <label for="dbUrlInput">Firebase Database URL</label>
+                <input type="text" id="dbUrlInput" class="form-control" placeholder="https://your-project-default-rtdb.firebaseio.com">
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button class="btn" onclick="closeConfigModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveFirebaseConfig()">Connect Live Sync</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TASKS = [
+            "1. Literature review and Methodology",
+            "2. Preparation of Proposal and presentation",
+            "3. Ethics approval",
+            "4. Permission from authority",
+            "5. Data collection",
+            "6. Data cleaning, entry and analysis",
+            "7. Submission and presentation of the final result",
+            "8. Manuscript writing",
+            "9. Submission final manuscript"
+        ];
+
+        const TOTAL_GROUPS = 34;
+        let groupsData = [];
+        let dbRef = null;
+
+        // Default initial data structure
+        function getDefaultGroups() {
+            let list = [];
+            for (let i = 1; i <= TOTAL_GROUPS; i++) {
+                list.push({
+                    id: i,
+                    name: `Group ${i}`,
+                    title: '',
+                    members: '',
+                    tasks: Array(9).fill(0)
+                });
+            }
+            return list;
+        }
+
+        function initApp() {
+            const storedDbUrl = localStorage.getItem('fm_firebase_db_url');
+            if (storedDbUrl) {
+                connectFirebase(storedDbUrl);
+            } else {
+                // Fallback to local offline mode
+                groupsData = JSON.parse(localStorage.getItem('fm_research_local')) || getDefaultGroups();
+                updateSyncBadge(false, "Local Mode (Offline)");
+                populateGroupSelect();
+                renderAllViews();
+            }
+        }
+
+        function connectFirebase(dbUrl) {
+            try {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp({ databaseURL: dbUrl });
+                }
+                dbRef = firebase.database().ref('fm_research_progress_2026_2028');
+                
+                // Real-time Cloud Listener across all 34 devices
+                dbRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && Array.isArray(data)) {
+                        groupsData = data;
+                    } else {
+                        groupsData = getDefaultGroups();
+                        dbRef.set(groupsData);
+                    }
+                    updateSyncBadge(true, "Cloud Live Sync Active");
+                    populateGroupSelect();
+                    renderAllViews();
+                }, (error) => {
+                    console.error("Firebase Sync Error:", error);
+                    updateSyncBadge(false, "Sync Error / Read-Only");
+                });
+            } catch (e) {
+                updateSyncBadge(false, "Connection Failed");
+            }
+        }
+
+        function updateSyncBadge(isOnline, text) {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            dot.className = `dot ${isOnline ? 'dot-online' : 'dot-offline'}`;
+            txt.innerText = text;
+        }
+
+        function saveToCloudOrLocal() {
+            if (dbRef) {
+                dbRef.set(groupsData);
+            } else {
+                localStorage.setItem('fm_research_local', JSON.stringify(groupsData));
+            }
+        }
+
+        function calculateGroupProgress(tasks) {
+            const completed = tasks.filter(t => t === 2).length;
+            const inProgress = tasks.filter(t => t === 1).length;
+            const pct = Math.round(((completed + (inProgress * 0.5)) / TASKS.length) * 100);
+            return Math.min(100, pct);
+        }
+
+        function renderStats() {
+            let totalPctSum = 0;
+            let ethicsApproved = 0;
+            let finalSubmitted = 0;
+
+            groupsData.forEach(g => {
+                totalPctSum += calculateGroupProgress(g.tasks);
+                if (g.tasks[2] === 2) ethicsApproved++;
+                if (g.tasks[8] === 2) finalSubmitted++;
+            });
+
+            document.getElementById('stat-avg-progress').innerText = `${Math.round(totalPctSum / TOTAL_GROUPS)}%`;
+            document.getElementById('stat-ethics-approved').innerText = `${ethicsApproved} / ${TOTAL_GROUPS}`;
+            document.getElementById('stat-manuscripts-submitted').innerText = `${finalSubmitted} / ${TOTAL_GROUPS}`;
+        }
+
+        function renderMatrix() {
+            const tbody = document.getElementById('matrixTableBody');
+            const searchVal = document.getElementById('searchGroup').value.toLowerCase();
+            tbody.innerHTML = '';
+
+            groupsData.forEach(group => {
+                if (searchVal && !group.name.toLowerCase().includes(searchVal) && !group.title.toLowerCase().includes(searchVal)) {
+                    return;
+                }
+
+                const tr = document.createElement('tr');
+                const progressPct = calculateGroupProgress(group.tasks);
+
+                let tasksHtml = '';
+                group.tasks.forEach((status, idx) => {
+                    tasksHtml += `<td class="task-col">
+                        <span class="status-dot status-${status}" 
+                              title="${TASKS[idx]} - Click to Toggle Status"
+                              onclick="toggleTaskStatus(${group.id}, ${idx})"></span>
+                    </td>`;
+                });
+
+                tr.innerHTML = `
+                    <td style="font-weight:700;">${group.name}</td>
+                    <td>${group.title ? group.title : '<em style="color:#94a3b8;">No title assigned</em>'}</td>
+                    ${tasksHtml}
+                    <td style="text-align: center;">
+                        <span style="font-weight:bold; font-size:0.8rem; margin-right:4px;">${progressPct}%</span>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${progressPct}%"></div></div>
+                    </td>
+                    <td style="text-align: center;">
+                        <button class="btn" style="padding:2px 8px; font-size:0.75rem; border:1px solid var(--border);" onclick="openEditorForGroup(${group.id})">Edit</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleTaskStatus(groupId, taskIdx) {
+            const group = groupsData.find(g => g.id === groupId);
+            if (group) {
+                group.tasks[taskIdx] = (group.tasks[taskIdx] + 1) % 3;
+                saveToCloudOrLocal();
+                renderAllViews();
+            }
+        }
+
+        function populateGroupSelect() {
+            const select = document.getElementById('selectGroup');
+            const currentVal = select.value;
+            select.innerHTML = '';
+            groupsData.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g.id;
+                opt.innerText = `${g.name} ${g.title ? '- ' + g.title : ''}`;
+                select.appendChild(opt);
+            });
+            if (currentVal) select.value = currentVal;
+            loadGroupEditorData();
+        }
+
+        function loadGroupEditorData() {
+            const groupId = parseInt(document.getElementById('selectGroup').value) || 1;
+            const group = groupsData.find(g => g.id === groupId);
+            if (!group) return;
+
+            document.getElementById('projectTitle').value = group.title || '';
+            document.getElementById('leadResearcher').value = group.members || '';
+
+            const listContainer = document.getElementById('taskEditorList');
+            listContainer.innerHTML = '';
+
+            TASKS.forEach((taskName, idx) => {
+                const item = document.createElement('div');
+                item.className = 'task-editor-item';
+                item.innerHTML = `
+                    <div style="font-weight:500; font-size:0.875rem;">${taskName}</div>
+                    <select class="status-select" id="task-select-${idx}">
+                        <option value="0" ${group.tasks[idx] === 0 ? 'selected' : ''}>Not Started</option>
+                        <option value="1" ${group.tasks[idx] === 1 ? 'selected' : ''}>In Progress</option>
+                        <option value="2" ${group.tasks[idx] === 2 ? 'selected' : ''}>Completed</option>
+                    </select>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function saveGroupData() {
+            const groupId = parseInt(document.getElementById('selectGroup').value);
+            const group = groupsData.find(g => g.id === groupId);
+            if (!group) return;
+
+            group.title = document.getElementById('projectTitle').value;
+            group.members = document.getElementById('leadResearcher').value;
+
+            TASKS.forEach((_, idx) => {
+                group.tasks[idx] = parseInt(document.getElementById(`task-select-${idx}`).value);
+            });
+
+            saveToCloudOrLocal();
+            renderAllViews();
+            alert(`${group.name} progress published live!`);
+        }
+
+        function renderAllViews() {
+            renderStats();
+            renderMatrix();
+        }
+
+        function openEditorForGroup(groupId) {
+            switchTab('editor');
+            document.getElementById('selectGroup').value = groupId;
+            loadGroupEditorData();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tabId === 'matrix') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-matrix').classList.add('active');
+            } else if (tabId === 'editor') {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-editor').classList.add('active');
+            }
+        }
+
+        function openConfigModal() {
+            document.getElementById('configModal').style.display = 'flex';
+            document.getElementById('dbUrlInput').value = localStorage.getItem('fm_firebase_db_url') || '';
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').style.display = 'none';
+        }
+
+        function saveFirebaseConfig() {
+            const url = document.getElementById('dbUrlInput').value.trim();
+            if (url) {
+                localStorage.setItem('fm_firebase_db_url', url);
+                closeConfigModal();
+                connectFirebase(url);
+            } else {
+                localStorage.removeItem('fm_firebase_db_url');
+                closeConfigModal();
+                location.reload();
+            }
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
