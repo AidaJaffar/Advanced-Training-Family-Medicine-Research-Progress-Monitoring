@@ -294,6 +294,16 @@
         let groupsData = [];
         let dbRef = null;
 
+        const firebaseConfig = {
+          apiKey: "AIzaSyCQXSkS1FWmLOJYLIj5M5_vbeYVoxYsLzM",
+          authDomain: "family-medicine-71291.firebaseapp.com",
+          databaseURL: "https://family-medicine-71291-default-rtdb.asia-southeast1.firebasedatabase.app/"
+          projectId: "family-medicine-71291",
+          storageBucket: "family-medicine-71291.firebasestorage.app",
+          messagingSenderId: "467598956428",
+          appId: "1:467598956428:web:5ec2a48f578eb4c97168a9"
+        };
+
         // Default initial data structure
         function getDefaultGroups() {
             let list = [];
@@ -310,22 +320,13 @@
         }
 
         function initApp() {
-            const storedDbUrl = localStorage.getItem('fm_firebase_db_url');
-            if (storedDbUrl) {
-                connectFirebase(storedDbUrl);
-            } else {
-                // Fallback to local offline mode
-                groupsData = JSON.parse(localStorage.getItem('fm_research_local')) || getDefaultGroups();
-                updateSyncBadge(false, "Local Mode (Offline)");
-                populateGroupSelect();
-                renderAllViews();
-            }
+            connectFirebase();
         }
 
-        function connectFirebase(dbUrl) {
+        function connectFirebase() {
             try {
                 if (!firebase.apps.length) {
-                    firebase.initializeApp({ databaseURL: dbUrl });
+                    firebase.initializeApp(firebaseConfig);
                 }
                 dbRef = firebase.database().ref('fm_research_progress_2026_2028');
                 
