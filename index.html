@@ -158,7 +158,6 @@
                 <span id="statusText">Checking Cloud Sync...</span>
             </div>
             <div class="action-buttons">
-                <button class="btn btn-outline" onclick="openConfigModal()">Cloud Sync Setup</button>
                 <button class="btn btn-primary" onclick="switchTab('editor')">Update Group Progress</button>
             </div>
         </div>
@@ -260,22 +259,6 @@
             </div>
         </div>
     </main>
-
-    <!-- CONFIG MODAL -->
-    <div class="modal-overlay" id="configModal">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 0.5rem;">Firebase Cloud Sync Setup</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Paste your Firebase Database URL below to sync live updates across all 34 groups in real time.</p>
-            <div class="form-group">
-                <label for="dbUrlInput">Firebase Database URL</label>
-                <input type="text" id="dbUrlInput" class="form-control" placeholder="https://your-project-default-rtdb.firebaseio.com">
-            </div>
-            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                <button class="btn" onclick="closeConfigModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveFirebaseConfig()">Connect Live Sync</button>
-            </div>
-        </div>
-    </div>
 
     <script>
         const TASKS = [
@@ -514,28 +497,6 @@
             } else if (tabId === 'editor') {
                 document.querySelectorAll('.tab-btn')[1].classList.add('active');
                 document.getElementById('tab-editor').classList.add('active');
-            }
-        }
-
-        function openConfigModal() {
-            document.getElementById('configModal').style.display = 'flex';
-            document.getElementById('dbUrlInput').value = localStorage.getItem('fm_firebase_db_url') || '';
-        }
-
-        function closeConfigModal() {
-            document.getElementById('configModal').style.display = 'none';
-        }
-
-        function saveFirebaseConfig() {
-            const url = document.getElementById('dbUrlInput').value.trim();
-            if (url) {
-                localStorage.setItem('fm_firebase_db_url', url);
-                closeConfigModal();
-                connectFirebase(url);
-            } else {
-                localStorage.removeItem('fm_firebase_db_url');
-                closeConfigModal();
-                location.reload();
             }
         }
 
