@@ -7,6 +7,7 @@
     <!-- Firebase Compat Libraries -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
     <style>
         :root {
             --primary: #1e3a8a;
@@ -310,6 +311,11 @@
             try {
                 if (!firebase.apps.length) {
                     firebase.initializeApp(firebaseConfig);
+                    
+                    firebase.appCheck().activate(
+                        new firebase.appCheck.ReCaptchaEnterpriseProvider("6LfY6oQtAAAAAPA8jXN2yYgIjDuFLUtNTHJe2mwk"),
+                        true
+                    );
                 }
                 dbRef = firebase.database().ref('fm_research_progress_2026_2028');
                 
